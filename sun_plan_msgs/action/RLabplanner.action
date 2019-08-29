@@ -1,0 +1,53 @@
+# An action which adds gripper/object pivoting capability to the OMPL MOveIt! planner
+
+#GOAL DEFINITION
+
+# The name of the group should be used to plan for pickup
+string group_name
+
+# Number of joints of the robot kinematic chain
+int32 num_joints
+
+# The target pose
+geometry_msgs/Pose target_pose
+
+# Optional constraints to be imposed on every point in the motion plan
+moveit_msgs/Constraints path_constraints
+
+# The full starting configuration of the robot at the beginning of the trajectory
+float32[] start_config
+
+# Activate/Deativate gripper/object pivoting capability to the planner
+bool activate_pivoting
+
+# Full path of the URDF file of the model
+string path_urdf_model
+
+# Full path of the URDF file of the AUGMENTED model (model + dummy_link)
+string path_urdf_augmented
+
+# Name of the end_effector link
+string link_ee_name
+
+# Name of the dummy link
+string link_dummy_name
+
+---
+
+#RESULT DEFINITION
+
+moveit_msgs/MoveItErrorCodes planning_code
+moveit_msgs/MoveItErrorCodes execution_code
+trajectory_msgs/JointTrajectory[] planned_trajectories
+int32[] sequence
+
+---
+
+#FEEDBACK
+
+# The overall feedback of the planning attempt
+moveit_msgs/MoveItErrorCodes planning_success
+moveit_msgs/MoveItErrorCodes planning_pivoting
+moveit_msgs/MoveItErrorCodes execution_success
+moveit_msgs/MoveItErrorCodes execution_pivoting
+
