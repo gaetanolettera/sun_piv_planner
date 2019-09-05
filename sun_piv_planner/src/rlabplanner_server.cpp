@@ -414,16 +414,44 @@ public:
 			break;
 
 		case (1): // pivoting planning mode 
+
 			ROS_INFO("CASE B - PIVOTING planning mode ");
     			nh_.setParam("robot_description", ss_augmented.str());
 			ik_found = GetCorrectIK(group_name, num_joints, target_pose, path_constraints, planning_scene_monitor_original, true, link_ee_name, link_dummy_name);
 			if(ik_found)
 			{
+
+
+				tf2::Quaternion w_Q_rf(0.70711, 0.0, -0.70711, 0.0); //<- denkmit object piv
+						//tf2::Quaternion w_Q_rf(-0.5, -0.5, 0.5, 0.5); //<- no object piv
+						tf2::Quaternion w_Q_target(goal->target_pose.orientation.x, goal->target_pose.orientation.y, goal->target_pose.orientation.z, goal->target_pose.orientation.w);
+
+						tf2::Quaternion Q_unit = (w_Q_target.inverse() * w_Q_rf);
+						double norm_vect = Q_unit[0] + Q_unit[1] + Q_unit[2];
+                  norm_vect = 0.0;
+
+						cout << "w_Q_target --> " << tf2::toMsg(w_Q_target) << endl;
+						cout << "Q_unit --> " << tf2::toMsg(Q_unit) << endl;
+						cout << "norm_vect --> " << norm_vect << endl;
+
+bool gp_ik_found;
+moveit::planning_interface::MoveGroupInterface::Plan gp_plan;
+moveit_msgs::Constraints custom_constraints;
+moveit_msgs::OrientationConstraint ocm;
+moveit_msgs::PositionConstraint pcm;
+shape_msgs::SolidPrimitive primitive;
+moveit_msgs::BoundingVolume bv1;
+						if( fabs(norm_vect) >= 0.01 )
+						{
+							goto PIVOTING2;
+						}
+
 				// Pivoting:
-				moveit::planning_interface::MoveGroupInterface::Plan gp_plan;
-				moveit_msgs::Constraints custom_constraints;
+				
+				//moveit::planning_interface::MoveGroupInterface::Plan gp_plan;
+				//moveit_msgs::Constraints custom_constraints;
 				ROS_INFO("PIVOTING_MODE -> Applico il constraint in orientamento sul dummy");
-				moveit_msgs::OrientationConstraint ocm;
+				//moveit_msgs::OrientationConstraint ocm;
 				ocm.link_name = group.getEndEffectorLink().c_str();
 				ocm.header.frame_id = group.getEndEffectorLink().c_str();
 				ocm.orientation.w = 1.0;
@@ -433,17 +461,17 @@ public:
 				ocm.weight = 1.0;
 				custom_constraints.orientation_constraints.push_back(ocm);
 				ROS_INFO("PIVOTING_MODE -> Applico il constraint in posizione sul dummy");
-				moveit_msgs::PositionConstraint pcm;
+				//moveit_msgs::PositionConstraint pcm;
 				pcm.link_name = group.getEndEffectorLink().c_str();
 				pcm.target_point_offset.x = 0.00001;
 				pcm.target_point_offset.y = 0.00001;
 				pcm.target_point_offset.z = 0.00001;
-				shape_msgs::SolidPrimitive primitive;
+				//shape_msgs::SolidPrimitive primitive;
 				primitive.type = shape_msgs::SolidPrimitive::BOX;
 				primitive.dimensions.push_back(0.0005); // x
 				primitive.dimensions.push_back(0.0005); // y
 				primitive.dimensions.push_back(0.0005); // z
-				moveit_msgs::BoundingVolume bv1;
+				//moveit_msgs::BoundingVolume bv1;
 				bv1.primitives.push_back(primitive);
 				bv1.primitive_poses.push_back(current_pose);
 				pcm.constraint_region = bv1;
@@ -455,7 +483,8 @@ public:
 
 				group.setStartState(*group.getCurrentState());
 				nh_.setParam("robot_description", ss_model.str());
-				bool gp_ik_found = GetCorrectIK(group_name, num_joints, pivoting_pose, custom_constraints, planning_scene_monitor_original, false, link_ee_name, link_dummy_name);
+				/*bool*/ gp_ik_found = GetCorrectIK(group_name, num_joints, pivoting_pose, custom_constraints, planning_scene_monitor_original, false, link_ee_name, link_dummy_name);
+
 				if (gp_ik_found == true)
 				{
 					group.setJointValueTarget(computed_config); 
@@ -471,8 +500,9 @@ public:
 	    					result_.sequence.push_back(1);
     						result_.planned_trajectories.push_back(gp_plan.trajectory_.joint_trajectory);
 						ROS_INFO("PIVOTING execution completed! 12456");
-						
-						tf2::Quaternion w_Q_rf(0.70711, 0.0, -0.70711, 0.0);
+				/*		
+						tf2::Quaternion w_Q_rf(0.70711, 0.0, -0.70711, 0.0); //<- denkmit object piv
+						//tf2::Quaternion w_Q_rf(-0.5, -0.5, 0.5, 0.5); //<- no object piv
 						tf2::Quaternion w_Q_target(goal->target_pose.orientation.x, goal->target_pose.orientation.y, goal->target_pose.orientation.z, goal->target_pose.orientation.w);
 
 						tf2::Quaternion Q_unit = (w_Q_target.inverse() * w_Q_rf);
@@ -480,7 +510,7 @@ public:
 
 						cout << "w_Q_target --> " << tf2::toMsg(w_Q_target) << endl;
 						cout << "Q_unit --> " << tf2::toMsg(Q_unit) << endl;
-						cout << "norm_vect --> " << norm_vect << endl;
+						cout << "norm_vect --> " << norm_vect << endl;*/
 
 
 						if( fabs(norm_vect) < 0.01 )
@@ -550,22 +580,24 @@ VIRTUAL_ROTATION:
   							}
   						}
 					} else {
+
+PIVOTING2:
 							//PIVOTING INCLINATO
 							ROS_INFO("PIVOTING INCLINATO planning...");
-							tf2::Quaternion w_Q_rf(0.70711, 0.0, -0.70711, 0.0);
+							//tf2::Quaternion w_Q_rf(0.70711, 0.0, -0.70711, 0.0);
 							tf2::Quaternion w_Q_G_pl(pivoting_pose.orientation.x, pivoting_pose.orientation.y, pivoting_pose.orientation.z, pivoting_pose.orientation.w);
 							tf2::Quaternion w_Q_O_pl(place_pose.orientation.x, place_pose.orientation.y, place_pose.orientation.z, place_pose.orientation.w);			
 							tf2::Quaternion Q_diff = 	w_Q_O_pl * w_Q_rf.inverse();
-							//tf2::Quaternion Q_star = Q_diff * w_Q_G_pl;
+							tf2::Quaternion Q_star = Q_diff * w_Q_G_pl;
 							tf2::Quaternion Q_star_i = Q_diff.inverse() * w_Q_G_pl;
 
-/*cout << "w_Q_rf ---> " << tf2::toMsg(w_Q_rf) << endl;
+cout << "w_Q_rf ---> " << tf2::toMsg(w_Q_rf) << endl;
 cout << "w_Q_G_pl ---> " << tf2::toMsg(w_Q_G_pl) << endl;
 cout << "w_Q_O_pl ---> " << tf2::toMsg(w_Q_O_pl) << endl;
 cout << "Q_diff ---> " << tf2::toMsg(Q_diff) << endl;
 cout << "Q_star ---> " << tf2::toMsg(Q_star) << endl;
 cout << "Q_star_i ---> " << tf2::toMsg(Q_star_i) << endl;
-*/
+
 							{
 							// Pivoting 2:
 							moveit::planning_interface::MoveGroupInterface::Plan gp_plan;
